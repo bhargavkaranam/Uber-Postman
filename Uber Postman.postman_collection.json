@@ -1,0 +1,217 @@
+{
+	"info": {
+		"_postman_id": "60ab9a85-bd84-4c2f-b2ef-b701b37f4c00",
+		"name": "Uber Postman",
+		"description": "Book an Uber from Postman! No access to your phone but want to book an Uber? Here's the solution, Postman comes to the rescue. Import the collection and the environment. Get an access token from the Uber dashboard and you're good to go!\n\n*Steps to follow*\n1. Login to the Uber API dashboard and create a new application. You can generate a temporary access token from the dashboard and use it. \n2. Copy the access token and use it in the environment variable `accessToken`\n3. Next, go to (https://opencagedata.com)[OpenCageData] and get an API Key and use it in the `geoLocationApi` environment variable.\n4. Final step, promise. Set your pickup and drop location in the respective environment variables.\n5. Now run this collection from Postman Runner and Postman will book the cheapest cab for you. More features to be added.\n\nFor more details - \n(UberAPI)[https://developer.uber.com/docs/]\n(Geolocation API)[https://opencagedata.com/api]",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Set pickup location",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "8cbe37f9-5d68-4900-968c-bf8ca52d725a",
+						"exec": [
+							"let responseJson = pm.response.json();",
+							"",
+							"if (responseJson && responseJson.results[0] && responseJson.results[0].geometry) {",
+							"    pm.environment.set('pickupLongitude', responseJson.results[0].geometry.lng);",
+							"    pm.environment.set('pickupLatitude', responseJson.results[0].geometry.lat);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{geoLocationApi}}/json/?key={{geoLocationApiToken}}&q={{pickupLocation}}",
+					"host": [
+						"{{geoLocationApi}}"
+					],
+					"path": [
+						"json",
+						""
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{geoLocationApiToken}}"
+						},
+						{
+							"key": "q",
+							"value": "{{pickupLocation}}"
+						}
+					]
+				},
+				"description": "Takes the pickup location and gets longitude and latitude of that location."
+			},
+			"response": []
+		},
+		{
+			"name": "Set drop location",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "8e504997-9eb2-4833-89c4-5fe596a16f1f",
+						"exec": [
+							"let responseJson = pm.response.json();",
+							"",
+							"if (responseJson && responseJson.results[0] && responseJson.results[0].geometry) {",
+							"    pm.environment.set('dropLongitude', responseJson.results[0].geometry.lng);",
+							"    pm.environment.set('dropLatitude', responseJson.results[0].geometry.lat);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{geoLocationApi}}/json/?key={{geoLocationApiToken}}&q={{dropLocation}}",
+					"host": [
+						"{{geoLocationApi}}"
+					],
+					"path": [
+						"json",
+						""
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{geoLocationApiToken}}"
+						},
+						{
+							"key": "q",
+							"value": "{{dropLocation}}"
+						}
+					]
+				},
+				"description": "Takes the drop location and gets longitude and latitude of that location."
+			},
+			"response": []
+		},
+		{
+			"name": "Get fare estimate",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "5d7961c6-e301-4374-b85d-7d6e417ebc6c",
+						"exec": [
+							"let responseJson = pm.response.json();",
+							"",
+							"if (responseJson.fare && responseJson.fare.fare_id) {",
+							"    pm.globals.set(\"fareId\", responseJson.fare.fare_id);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"start_longitude\": \"{{pickupLongitude}}\",\n\t\"start_latitude\": \"{{pickupLatitude}}\",\n\t\"end_longitude\": \"{{dropLongitude}}\",\n\t\"end_latitude\": \"{{dropLatitude}}\"\n}"
+				},
+				"url": {
+					"raw": "{{apiUrl}}/requests/estimate",
+					"host": [
+						"{{apiUrl}}"
+					],
+					"path": [
+						"requests",
+						"estimate"
+					]
+				},
+				"description": "Gets the fare estimate for the trip including the `fareId` which we use to book the cab. This is to inform Uber API that the user has accepted the fare."
+			},
+			"response": []
+		},
+		{
+			"name": "Book cab",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"fare_id\": \"{{fareId}}\",\n\t\"start_longitude\": \"{{pickupLongitude}}\",\n\t\"start_latitude\": \"{{pickupLatitude}}\",\n\t\"end_longitude\": \"{{dropLongitude}}\",\n\t\"end_latitude\": \"{{dropLatitude}}\"\n}"
+				},
+				"url": {
+					"raw": "{{apiUrl}}/requests",
+					"host": [
+						"{{apiUrl}}"
+					],
+					"path": [
+						"requests"
+					]
+				},
+				"description": "Books the cab!"
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{accessToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "dda8b69e-1981-4f5b-be26-46ebe9e9d027",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "ac59e352-8661-41a7-bd25-7a17c3699c92",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
